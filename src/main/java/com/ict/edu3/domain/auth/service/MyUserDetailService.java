@@ -21,7 +21,7 @@ public class MyUserDetailService implements UserDetailsService {
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         UserVO member = authMapper.selectMember(username);
         if (member == null) {
-            throw new UsernameNotFoundException("없는 아이디 입니다.");
+            throw new UsernameNotFoundException("없은 아이디 입니다.");
         }
         return new User(member.getM_id(), member.getM_pw(), new ArrayList<>());
     }
