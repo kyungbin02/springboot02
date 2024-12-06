@@ -1,10 +1,19 @@
 package com.ict.edu3.domain.guestbook.controller;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -148,11 +157,20 @@ public class GuestBookController {
                 String f_name = uuid.toString() + "_" + file.getOriginalFilename();
                 gvo.setGb_filename(f_name);
 
-                // 프로젝트 내부의 resources/static/upload 경로
-                String path = new File("src/main/resources/static/upload").getAbsolutePath();
-                // 실직적인 파일업로드
-                file.transferTo(new File(path, f_name));
+                // Windows 외부 경로 설정
+                String path = "C:\\Users\\thrud\\Documents\\upload";
+                File uploadDir = new File(path);
+                // application.yml 수정 : file.upload.dir=D:/uploads
+
+                // 디렉토리가 없으면 생성
+                if (!uploadDir.exists()) {
+                    uploadDir.mkdirs();
+                }
+
+                // 파일 저장
+                file.transferTo(new File(uploadDir, f_name));
             }
+            
 
             // 게스트북 쓰기
             int result = guestBookService.getGuestBookWrite(gvo);
@@ -172,5 +190,23 @@ public class GuestBookController {
         }
         return dataVO;
     }
+
+    @GetMapping("/download/{filename}")
+    public ResponseEntity<Resource> downloadFile(@PathVariable("filename") String filename) {
+        try {
+            Path filePath = Paths.get("src/main/resources/static/upload").resolve(filename).normalize();
+            Resource resource = new UrlResource(filePath.toUri());
+            if (!resource.exists()) {
+                throw new FileNotFoundException("File not found: " + filename);
+            }
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                    .body(resource);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+    }
+
 
 }
